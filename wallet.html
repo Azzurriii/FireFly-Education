@@ -82,14 +82,14 @@
                             <img class="img-fluid" src="img/phantom-logo.png" alt="Phantom Wallet">
                         </div>
                         <div class="text-center p-4 pb-0">
-                            <h3 class="mb-0">1200 FFT</h3>
-                            <h5 class="mb-4">FireFly Tokens</h5>
+                            <h3 class="mb-0" id="balanceDisplay">-- SOL</h3>
+                            <h5 class="mb-4">Solana Tokens</h5>
                         </div>
                         <div class="d-flex border-top">
-                            <small class="flex-fill text-center border-end py-2"><i
-                                    class="fa fa-user text-primary me-2"></i>Address: 0x1234...5678</small>
-                            <small class="flex-fill text-center py-2"><i class="fa fa-clock text-primary me-2"></i>Last
-                                Updated: 2 hours ago</small>
+                            <small class="flex-fill text-center border-end py-2"><i class="fa fa-user text-primary me-2"></i>Address: <span
+                                    id="addressDisplay">Not connected</span></small>
+                            <small class="flex-fill text-center py-2"><i class="fa fa-clock text-primary me-2"></i>Last Updated: <span
+                                    id="lastUpdated">Never</span></small>
                         </div>
                     </div>
                 </div>
@@ -121,16 +121,20 @@
     <!-- Template Javascript -->
     <script src="js/main.js"></script>
 
-    <!-- Phantom Wallet Integration -->
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
     <script>
+        let publicKey;
+
         async function connectWallet() {
             try {
                 const provider = window.solana;
                 if (provider) {
                     console.log("Phantom wallet found!");
                     const response = await provider.connect();
-                    console.log("Connected with Public Key:", response.publicKey.toString());
-                    // Update UI or perform actions after successful connection
+                    publicKey = response.publicKey;
+                    console.log("Connected with Public Key:", publicKey.toString());
+                    updateAddress(publicKey.toString());
+                    await getBalance();
                 } else {
                     alert("Phantom wallet not found! Please install it.");
                 }
@@ -139,10 +143,35 @@
             }
         }
 
+        function updateAddress(address) {
+            const shortAddress = address.slice(0, 4) + '...' + address.slice(-4);
+            document.getElementById('addressDisplay').innerText = shortAddress;
+        }
+
+        async function getBalance() {
+            try {
+                const connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl('devnet'), 'confirmed');
+                const balance = await connection.getBalance(publicKey);
+                const balanceInSOL = balance / solanaWeb3.LAMPORTS_PER_SOL;
+
+                document.getElementById('balanceDisplay').innerText = `${balanceInSOL.toFixed(2)} FFT`;
+                updateLastUpdated();
+            } catch (err) {
+                console.error("Error fetching balance:", err);
+            }
+        }
+
+        function updateLastUpdated() {
+            const now = new Date();
+            document.getElementById('lastUpdated').innerText = now.toLocaleTimeString();
+        }
+
         function disconnectWallet() {
-            // Implement disconnect logic here
+            publicKey = null;
+            document.getElementById('balanceDisplay').innerText = '-- SOL';
+            document.getElementById('addressDisplay').innerText = 'Not connected';
+            document.getElementById('lastUpdated').innerText = 'Never';
             console.log("Wallet disconnected");
-            // Update UI or perform actions after disconnection
         }
     </script>
 </body>
